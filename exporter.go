@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"gopkg.in/redis.v3"
 )
 
 const namespace = "resque"
