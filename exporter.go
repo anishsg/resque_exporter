@@ -107,6 +107,7 @@ func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 		defer e.mut.Unlock()
 		e.timer = nil
 	})
+	fmt.Printf("Collect method invoked at: %s\n", currentTime.Format(time.RFC3339))
 }
 
 func (e *exporter) collect(ch chan<- prometheus.Metric) error {
