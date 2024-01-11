@@ -29,12 +29,11 @@ type exporter struct {
 func newExporter(config *Config) (*exporter, error) {
 	e := &exporter{
 		config: config,
-		queueStatus: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				Namespace: namespace,
-				Name:      "jobs_in_queue",
-				Help:      "Number of remained jobs in queue",
-			},
+		queueStatus: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "jobs_in_queue",
+			Help:      "Number of remained jobs in queue",
+		},
 			[]string{"queue_name"},
 		),
 		processed: prometheus.NewGauge(prometheus.GaugeOpts{
