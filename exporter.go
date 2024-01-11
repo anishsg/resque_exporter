@@ -89,6 +89,7 @@ func (e *exporter) Describe(ch chan<- *prometheus.Desc) {
 
 func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 	e.mut.Lock() // To protect metrics from concurrent collects.
+	currentTime := time.Now()
 	defer e.mut.Unlock()
 
 	if e.timer != nil {
