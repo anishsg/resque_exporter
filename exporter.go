@@ -29,7 +29,7 @@ type exporter struct {
 func newExporter(config *Config) (*exporter, error) {
 	e := &exporter{
 		config: config,
-		queueStatus: prometheus.NewGaugeVec(
+		queueStatus: prometheus.NewCounterVec(
 			prometheus.GaugeOpts{
 				Namespace: namespace,
 				Name:      "jobs_in_queue",
