@@ -2,6 +2,7 @@ package resqueExporter
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"sync"
 	"time"
@@ -19,7 +20,7 @@ type exporter struct {
 	processed      prometheus.Gauge
 	failedQueue    prometheus.Gauge
 	failedTotal    prometheus.Gauge
-	queueStatus    *prometheus.CounterVec
+	queueStatus    *prometheus.GaugeVec
 	totalWorkers   prometheus.Gauge
 	activeWorkers  prometheus.Gauge
 	idleWorkers    prometheus.Gauge
@@ -29,11 +30,12 @@ type exporter struct {
 func newExporter(config *Config) (*exporter, error) {
 	e := &exporter{
 		config: config,
-		queueStatus: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Namespace: namespace,
-			Name:      "jobs_in_queue",
-			Help:      "Number of remained jobs in queue",
-		},
+		queueStatus: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: namespace,
+				Name:      "jobs_in_queue",
+				Help:      "Number of remained jobs in queue",
+			},
 			[]string{"queue_name"},
 		),
 		processed: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -89,7 +91,6 @@ func (e *exporter) Describe(ch chan<- *prometheus.Desc) {
 
 func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 	e.mut.Lock() // To protect metrics from concurrent collects.
-	currentTime := time.Now()
 	defer e.mut.Unlock()
 
 	if e.timer != nil {
@@ -108,18 +109,18 @@ func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 		defer e.mut.Unlock()
 		e.timer = nil
 	})
-	fmt.Printf("Collect method invoked at: %s\n", currentTime.Format(time.RFC3339))
 }
 
 func (e *exporter) collect(ch chan<- prometheus.Metric) error {
 	resqueNamespace := e.config.ResqueNamespace
-
+	log.Print("%s namespace", resqueNamespace)
 	redisConfig := e.config.Redis
 	redisOpt := &redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", redisConfig.Host, redisConfig.Port),
 		Password: redisConfig.Password,
 		DB:       redisConfig.DB,
 	}
+	log.Print("%s:%d host port", redisConfig.Host, redisConfig.Port)
 	redis := redis.NewClient(redisOpt)
 	defer redis.Close()
 
@@ -133,13 +134,13 @@ func (e *exporter) collect(ch chan<- prometheus.Metric) error {
 	if err != nil {
 		return err
 	}
-
+	log.Print("%s Queues", queues)
 	for _, q := range queues {
 		n, err := redis.ZCard(fmt.Sprintf("%s:queue:%s", resqueNamespace, q)).Result()
 		if err != nil {
 			return err
 		}
-		e.queueStatus.WithLabelValues(q).Add(float64(n))
+		e.queueStatus.WithLabelValues(q).Set(float64(n))
 	}
 
 	processed, err := redis.Get(fmt.Sprintf("%s:stat:processed", resqueNamespace)).Result()
